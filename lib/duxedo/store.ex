@@ -25,22 +25,27 @@ defmodule Duxedo.Store do
   )
   """
 
+  @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: name(args[:instance]))
   end
 
+  @spec memory_conn(atom()) :: GenServer.server()
   def memory_conn(instance \\ :duxedo) do
     :persistent_term.get({__MODULE__, instance, :memory})
   end
 
+  @spec disk_conn(atom()) :: GenServer.server()
   def disk_conn(instance \\ :duxedo) do
     :persistent_term.get({__MODULE__, instance, :disk})
   end
 
+  @spec flush_to_disk(atom()) :: :ok
   def flush_to_disk(instance \\ :duxedo) do
     GenServer.call(name(instance), :flush_to_disk)
   end
 
+  @spec run_retention(atom()) :: :ok
   def run_retention(instance \\ :duxedo) do
     GenServer.call(name(instance), :run_retention)
   end
@@ -198,5 +203,5 @@ defmodule Duxedo.Store do
   defp retention_seconds(nil), do: 3600
 
   defp schedule_flush(interval), do: Process.send_after(self(), :flush_to_disk, interval)
-  defp schedule_retention, do: Process.send_after(self(), :run_retention, 600_000)
+  defp schedule_retention(), do: Process.send_after(self(), :run_retention, 600_000)
 end

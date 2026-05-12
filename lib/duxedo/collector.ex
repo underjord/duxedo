@@ -2,16 +2,19 @@ defmodule Duxedo.Collector do
   @moduledoc false
 
   use GenServer
-  require Logger
 
   alias Telemetry.Metrics.Counter
 
+  require Logger
+
   @max_buffer_size 10_000
 
+  @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: name(args[:instance]))
   end
 
+  @spec flush(atom()) :: :ok
   def flush(instance \\ :duxedo) do
     GenServer.call(name(instance), :flush)
   end
@@ -26,7 +29,8 @@ defmodule Duxedo.Collector do
     metrics = args[:metrics] || []
     events = args[:events] || []
 
-    handler_ids = register_metrics(instance, metrics, session) ++ register_events(instance, events, session)
+    handler_ids =
+      register_metrics(instance, metrics, session) ++ register_events(instance, events, session)
 
     state = %{
       instance: instance,
@@ -192,6 +196,7 @@ defmodule Duxedo.Collector do
 
   # --- Telemetry handler callbacks ---
 
+  @spec handle_telemetry_metric(:telemetry.event_name(), map(), map(), map()) :: :ok
   def handle_telemetry_metric(_event, measurements, metadata, config) do
     for metric <- config.metrics do
       try do
@@ -221,6 +226,7 @@ defmodule Duxedo.Collector do
     :ok
   end
 
+  @spec handle_telemetry_event(:telemetry.event_name(), map(), map(), map()) :: :ok
   def handle_telemetry_event(event_name, measurements, metadata, config) do
     try do
       tags = get_event_tags(metadata, config.event_opts)
@@ -243,6 +249,7 @@ defmodule Duxedo.Collector do
   end
 
   defp extract_measurement(%Counter{}, _measurements, _metadata), do: 1
+
   defp extract_measurement(metric, measurements, metadata) do
     case metric.measurement do
       fun when is_function(fun, 1) -> fun.(measurements)

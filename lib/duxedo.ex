@@ -33,6 +33,7 @@ defmodule Duxedo do
     events: []
   ]
 
+  @spec start_link(keyword()) :: Supervisor.on_start()
   def start_link(opts) do
     opts = Keyword.merge(@default_opts, opts)
     Supervisor.start_link(__MODULE__, opts, name: Module.concat(__MODULE__, opts[:instance]))

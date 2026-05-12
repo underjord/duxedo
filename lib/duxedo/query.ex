@@ -20,6 +20,9 @@ defmodule Duxedo.Query do
     * `:source` — `:memory` (default), `:disk`, or `:all`
   """
 
+  @type opts :: keyword()
+
+  @spec list_metrics(opts()) :: [String.t()]
   def list_metrics(opts \\ []) do
     conn = conn_for(opts)
 
@@ -32,6 +35,7 @@ defmodule Duxedo.Query do
     end
   end
 
+  @spec observations(String.t(), opts()) :: Dux.t()
   def observations(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -48,6 +52,7 @@ defmodule Duxedo.Query do
     |> Map.put(:conn, conn)
   end
 
+  @spec events(String.t(), opts()) :: Dux.t()
   def events(event_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -64,6 +69,7 @@ defmodule Duxedo.Query do
     |> Map.put(:conn, conn)
   end
 
+  @spec last_value(String.t(), opts()) :: number() | nil
   def last_value(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -84,6 +90,7 @@ defmodule Duxedo.Query do
     end
   end
 
+  @spec summary(String.t(), opts()) :: map()
   def summary(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -109,6 +116,7 @@ defmodule Duxedo.Query do
     end
   end
 
+  @spec count(String.t(), opts()) :: non_neg_integer()
   def count(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -125,6 +133,7 @@ defmodule Duxedo.Query do
     result_to_single_value(result, "n") || 0
   end
 
+  @spec sum(String.t(), opts()) :: number()
   def sum(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -141,6 +150,7 @@ defmodule Duxedo.Query do
     result_to_single_value(result, "total") || 0
   end
 
+  @spec percentiles(String.t(), [number()], opts()) :: map()
   def percentiles(metric_name, pcts \\ [50, 90, 95, 99], opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -169,6 +179,7 @@ defmodule Duxedo.Query do
     end
   end
 
+  @spec distribution(String.t(), opts()) :: Dux.t()
   def distribution(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -207,6 +218,7 @@ defmodule Duxedo.Query do
     |> Map.put(:conn, conn)
   end
 
+  @spec bucket(String.t(), pos_integer(), opts()) :: Dux.t()
   def bucket(metric_name, bucket_seconds \\ 60, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -229,6 +241,7 @@ defmodule Duxedo.Query do
     |> Map.put(:conn, conn)
   end
 
+  @spec series(String.t(), opts()) :: [number()]
   def series(metric_name, opts \\ []) do
     conn = conn_for(opts)
     {from_ts, to_ts} = resolve_time_range(opts)
@@ -306,18 +319,20 @@ defmodule Duxedo.Query do
         {materialized.field.name, Adbc.Column.to_list(materialized)}
       end)
 
-    case columns do
-      [] ->
-        []
-
-      [{_, first_values} | _] ->
-        for i <- 0..(length(first_values) - 1) do
-          Map.new(columns, fn {name, values} -> {name, Enum.at(values, i)} end)
-        end
-    end
+    columns_to_rows(columns)
   end
 
   defp result_to_rows(%Adbc.Result{data: []}), do: []
+
+  defp columns_to_rows([]), do: []
+
+  defp columns_to_rows([{_, first_values} | _] = columns) do
+    Enum.map(0..(length(first_values) - 1), &row_at(columns, &1))
+  end
+
+  defp row_at(columns, index) do
+    Map.new(columns, fn {name, values} -> {name, Enum.at(values, index)} end)
+  end
 
   defp result_to_single_value(result, col_name) do
     case result_to_rows(result) do

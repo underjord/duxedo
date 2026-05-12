@@ -3,6 +3,9 @@ defmodule Duxedo.Export do
   Export metric data as Arrow IPC, CSV, or ASCII chart.
   """
 
+  @type opts :: keyword()
+
+  @spec to_arrow_ipc(Dux.t()) :: {:ok, binary()} | {:error, term()}
   def to_arrow_ipc(%Dux{} = dux) do
     computed = Dux.compute(dux)
     {:table, table_ref} = computed.source
@@ -13,16 +16,19 @@ defmodule Duxedo.Export do
     end)
   end
 
+  @spec to_arrow_ipc(String.t(), opts()) :: {:ok, binary()} | {:error, term()}
   def to_arrow_ipc(metric_name, opts \\ []) do
     metric_name
     |> Duxedo.Query.observations(opts)
     |> to_arrow_ipc()
   end
 
+  @spec from_arrow_ipc(binary()) :: term()
   def from_arrow_ipc(binary) when is_binary(binary) do
     Adbc.StreamResult.from_ipc_stream(binary)
   end
 
+  @spec to_csv(Dux.t() | String.t(), opts()) :: {:ok, String.t()} | :ok
   def to_csv(dux_or_metric, opts \\ [])
 
   def to_csv(%Dux{} = dux, opts) do
@@ -36,6 +42,7 @@ defmodule Duxedo.Export do
     |> to_csv(opts)
   end
 
+  @spec plot(String.t(), opts()) :: :ok | {:error, term()}
   def plot(metric_name, opts \\ []) do
     series = Duxedo.Query.series(metric_name, opts)
 
@@ -72,7 +79,9 @@ defmodule Duxedo.Export do
     csv = Enum.join(lines, "\n")
 
     case opts[:iodevice] do
-      nil -> {:ok, csv}
+      nil ->
+        {:ok, csv}
+
       device ->
         IO.write(device, csv)
         :ok
@@ -84,6 +93,7 @@ defmodule Duxedo.Export do
   end
 
   defp csv_escape(nil), do: ""
+
   defp csv_escape(val) when is_binary(val) do
     if String.contains?(val, [",", "\"", "\n"]) do
       "\"" <> String.replace(val, "\"", "\"\"") <> "\""
@@ -91,5 +101,6 @@ defmodule Duxedo.Export do
       val
     end
   end
+
   defp csv_escape(val), do: to_string(val)
 end

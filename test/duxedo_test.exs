@@ -102,7 +102,8 @@ defmodule DuxedoTest do
     end
 
     test "flush_to_disk moves old data from memory to disk", context do
-      %{instance: inst} = start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
+      %{instance: inst} =
+        start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
 
       now = System.system_time(:second)
 
@@ -127,7 +128,8 @@ defmodule DuxedoTest do
     end
 
     test "flush_to_disk also moves old events", context do
-      %{instance: inst} = start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
+      %{instance: inst} =
+        start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
 
       now = System.system_time(:second)
 
@@ -146,7 +148,8 @@ defmodule DuxedoTest do
     end
 
     test "retention deletes old data from both databases", context do
-      %{instance: inst} = start_duxedo(context, retention: [memory: {10, :second}, disk: {5, :second}])
+      %{instance: inst} =
+        start_duxedo(context, retention: [memory: {10, :second}, disk: {5, :second}])
 
       now = System.system_time(:second)
       mem = Duxedo.Store.memory_conn(inst)
@@ -185,6 +188,7 @@ defmodule DuxedoTest do
       %{instance: inst} = start_duxedo(context)
 
       now = System.system_time(:second)
+
       insert_observations(inst, [
         %{ts: now, event: "test.metric", field: "v", value: 42.0}
       ])
@@ -209,6 +213,7 @@ defmodule DuxedoTest do
       %{instance: inst} = start_duxedo(context)
 
       now = System.system_time(:second)
+
       insert_observations(inst, [
         %{ts: now, event: "test", field: "v", value: 1.0}
       ])
@@ -232,7 +237,8 @@ defmodule DuxedoTest do
     end
 
     test "repeated flushes don't duplicate data", context do
-      %{instance: inst} = start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
+      %{instance: inst} =
+        start_duxedo(context, retention: [memory: {10, :second}, disk: {30, :day}])
 
       now = System.system_time(:second)
 
@@ -394,7 +400,9 @@ defmodule DuxedoTest do
       mem_rows = Duxedo.Query.observations("vm.memory.total", instance: inst) |> Dux.to_rows()
       assert hd(mem_rows)["field"] == "total"
 
-      dur_rows = Duxedo.Query.observations("http.request.duration", instance: inst) |> Dux.to_rows()
+      dur_rows =
+        Duxedo.Query.observations("http.request.duration", instance: inst) |> Dux.to_rows()
+
       assert hd(dur_rows)["field"] == "duration"
     end
   end
@@ -617,9 +625,10 @@ defmodule DuxedoTest do
       now = System.system_time(:second)
 
       # Insert values 1 through 1000
-      rows = for i <- 1..1000 do
-        %{ts: now, event: "m", field: "v", value: i / 1}
-      end
+      rows =
+        for i <- 1..1000 do
+          %{ts: now, event: "m", field: "v", value: i / 1}
+        end
 
       insert_observations(inst, rows)
 
@@ -854,7 +863,9 @@ defmodule DuxedoTest do
     test "CSV with empty data", context do
       %{instance: inst} = start_duxedo(context)
 
-      {:ok, csv} = Duxedo.Query.observations("nonexistent", instance: inst) |> Duxedo.Export.to_csv()
+      {:ok, csv} =
+        Duxedo.Query.observations("nonexistent", instance: inst) |> Duxedo.Export.to_csv()
+
       assert csv == ""
     end
 
@@ -891,9 +902,10 @@ defmodule DuxedoTest do
       insert_observations(inst, rows)
 
       # Capture IO to verify it doesn't crash and produces output
-      output = ExUnit.CaptureIO.capture_io(fn ->
-        Duxedo.Export.plot("m", instance: inst)
-      end)
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          Duxedo.Export.plot("m", instance: inst)
+        end)
 
       assert output =~ "Metric: m"
     end
@@ -933,6 +945,7 @@ defmodule DuxedoTest do
             0 ->
               :persistent_term.put(:test_clock_calls, 1)
               false
+
             _ ->
               true
           end
@@ -996,7 +1009,9 @@ defmodule DuxedoTest do
     end
 
     test "data survives flush to disk and is queryable there", context do
-      %{instance: inst} = start_duxedo(context, retention: [memory: {5, :second}, disk: {1, :hour}])
+      %{instance: inst} =
+        start_duxedo(context, retention: [memory: {5, :second}, disk: {1, :hour}])
+
       now = System.system_time(:second)
 
       insert_observations(inst, [
@@ -1018,9 +1033,10 @@ defmodule DuxedoTest do
       %{instance: inst} = start_duxedo(context)
       now = System.system_time(:second)
 
-      rows = for _i <- 1..10_000 do
-        %{ts: now, event: "bulk", field: "v", value: :rand.uniform() * 100}
-      end
+      rows =
+        for _i <- 1..10_000 do
+          %{ts: now, event: "bulk", field: "v", value: :rand.uniform() * 100}
+        end
 
       insert_observations(inst, rows)
 
